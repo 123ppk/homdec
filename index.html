@@ -3,110 +3,422 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mini eCommerce with Admin Login</title>
+  <title>ArtTree - Your Link to Artfruit</title>
   <style>
-    /* Updated styles below */
-    .product-card {
-      max-width: 400px;
+    /* तुमचा मूळ CSS तसाच */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #fdf6f0;
+      color: #333;
     }
-    .buy-button {
+    header {
+      text-align: center;
+      padding: 1em;
+      background: #8e44ad;
+      color: white;
+    }
+    header h1 { margin: 0; font-size: 2em; }
+    header p { margin: 0.2em 0; font-style: italic; }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 1em;
+    }
+
+    .login-section, .admin-panel, .user-view {
+      display: none;
+    }
+
+    input, button {
+      margin: 0.5em 0;
+      padding: 0.7em;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+      font-family: inherit;
+    }
+
+    input { width: 100%; }
+
+    button {
+      background: #b47ed6;
+      color: white;
+      border: none;
+      cursor: pointer;
+      padding: 0.7em 1.2em;
+      font-weight: 600;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin: 1em 0;
+      padding: 1em;
+      text-align: center;
       position: relative;
     }
-    .buy-button::after {
-      content: "\1F6D2";
-      position: absolute;
-      right: -30px;
-      top: 3px;
-      cursor: pointer;
-    }
-    .no-return {
-      color: red;
-      font-size: 12px;
-      margin-top: 5px;
-    }
-    .popup-box {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      border: 1px solid #ccc;
-      padding: 20px;
-      z-index: 10000;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
-    .popup-box img {
+
+    .card img {
       max-width: 100px;
-      display: block;
-      margin: auto;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
     }
-    .popup-box h4 {
-      text-align: center;
-      margin-top: 10px;
+
+    .card .art-images img {
+      width: 60px;
+      margin: 5px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 8px;
     }
-    .popup-close {
+
+    .icons {
+      margin-top: 1em;
+    }
+
+    .icons a {
+      margin: 0 10px;
+      color: #8e44ad;
+      font-weight: bold;
+    }
+
+    .close-btn {
       position: absolute;
       top: 5px;
       right: 10px;
       cursor: pointer;
-      font-size: 18px;
+      font-size: 20px;
+      color: red;
+    }
+
+    #logoutBtn {
+      display: none;
+      background: #c0392b;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+    }
+
+    #payPopup {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    #payPopup .popup-inner {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 300px;
+    }
+
+    @media (max-width: 600px) {
+      .card img { width: 80px; height: 80px; }
     }
   </style>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
 </head>
 <body>
 
-<!-- Your existing HTML remains unchanged above -->
+<header>
+  <h1>ArtTree</h1>
+  <p>Your link to the artfruit 🍇</p>
+</header>
 
-<div id="gpayPopup" class="popup-box">
-  <span class="popup-close" onclick="document.getElementById('gpayPopup').style.display='none'">&times;</span>
-  <img src="https://upload.wikimedia.org/wikipedia/commons/5/5a/Google_Pay_%28GPay%29_Logo.svg" />
-  <h4>Scan & Pay with GPay</h4>
+<button id="logoutBtn" onclick="logout()">Logout</button>
+
+<div class="container">
+  <div class="login-section" id="loginSection">
+    <h2>Login / Signup</h2>
+    <input type="email" id="email" placeholder="Enter email" />
+    <input type="password" id="password" placeholder="Enter password" />
+    <button onclick="login()">Login / Signup</button>
+  </div>
+
+  <div class="admin-panel" id="adminPanel">
+    <h2>Add Artist Card</h2>
+    <input type="text" id="artistName" placeholder="Artist Name" />
+    <input type="text" id="instaLink" placeholder="Instagram Link" />
+    <input type="text" id="artLink" placeholder="Portfolio/Art Link" />
+    <input type="file" id="profilePic" accept="image/*" />
+    <label>Upload up to 10 Art Images</label>
+    <input type="file" id="artImages" accept="image/*" multiple />
+    <button onclick="addCard()">Add Artist Card</button>
+    <hr>
+    <div id="cardList"></div>
+  </div>
+
+  <div class="user-view" id="userView">
+    <h2>Your ArtTree</h2>
+    <div id="userCardView"></div>
+  </div>
+</div>
+
+<div id="payPopup">
+  <div class="popup-inner">
+    <h3>Card Expired</h3>
+    <p>This card has expired. Please renew to unlock more features.</p>
+    <img src="https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=upi://pay?pa=youremail@upi&pn=ArtTree&am=99&cu=INR" alt="GPay QR" />
+    <br><br>
+    <button onclick="document.getElementById('payPopup').style.display='none'">Close</button>
+  </div>
 </div>
 
 <script>
-  // Show GPay popup on buy button click
-  document.addEventListener("click", function(e) {
-    if (e.target.classList.contains("buy-button")) {
-      e.preventDefault();
-      const popup = document.getElementById("gpayPopup");
-      popup.style.display = "block";
-    }
-  });
+  const firebaseConfig = {
+    apiKey: "AIzaSyDKxW2RqlVN6Hafx7WdehTuQIk5KScpIeo",
+    authDomain: "arttree-f1d9e.firebaseapp.com",
+    projectId: "arttree-f1d9e",
+    storageBucket: "arttree-f1d9e.appspot.com",
+    messagingSenderId: "454767883548",
+    appId: "1:454767883548:web:298a8d060e0d0fc1db36d9",
+    measurementId: "G-L77JE0T68Q"
+  };
 
-  // Add "No Return" label in form submit
-  function saveProduct(product) {
-    product.noReturn = true;
-    const products = JSON.parse(localStorage.getItem("products") || "[]");
-    products.push(product);
-    localStorage.setItem("products", JSON.stringify(products));
-    clearForm();
-    renderProducts();
-  }
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const storage = firebase.storage();
+  const db = firebase.firestore();
 
-  function renderProducts() {
-    const products = JSON.parse(localStorage.getItem("products") || "[]");
-    const filter = searchBar.value.toLowerCase();
-    productList.innerHTML = "<h3>Available Products</h3>";
-    products.forEach((prod, index) => {
-      if (!prod.pname.toLowerCase().includes(filter)) return;
-      const card = document.createElement("div");
-      card.className = "product-card";
-      const info = document.createElement("div");
-      info.className = "product-info";
-      info.innerHTML = `
-        <h4>${prod.pname}</h4>
-        <p>Price: ₹${prod.price}</p>
-        <p>Qty: ${prod.qty || '-'}</p>
-        <p>Contact: ${prod.contact || '-'}</p>
-        <a class="buy-button" href="${prod.gpay || '#'}" target="_blank">Buy</a>
-        <p class="no-return">No Return</p>
-      `;
-      card.appendChild(info);
-      productList.appendChild(card);
+  const loginSection = document.getElementById('loginSection');
+  const adminPanel = document.getElementById('adminPanel');
+  const userView = document.getElementById('userView');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const adminEmail = 'admin@arttree.com';
+
+  let userType = '';
+  let storedCards = [];
+
+  function logout() {
+    auth.signOut().then(() => {
+      userType = '';
+      loginSection.style.display = 'block';
+      adminPanel.style.display = 'none';
+      userView.style.display = 'none';
+      logoutBtn.style.display = 'none';
+      storedCards = [];
     });
   }
-</script>
 
+  function login() {
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const password = document.getElementById('password').value.trim();
+    if (!email || !password) return alert("Fill all fields");
+
+    auth.signInWithEmailAndPassword(email, password)
+      .then(userCredential => {
+        const user = userCredential.user;
+        postLogin(user.email);
+      })
+      .catch((error) => {
+        if (error.code === 'auth/user-not-found') {
+          auth.createUserWithEmailAndPassword(email, password)
+            .then(userCredential => {
+              const user = userCredential.user;
+              postLogin(user.email);
+            })
+            .catch(err => alert("Error: " + err.message));
+        } else {
+          alert("Login error: " + error.message);
+        }
+      });
+  }
+
+  function postLogin(email) {
+    if (email.toLowerCase() === adminEmail) {
+      userType = 'admin';
+      loginSection.style.display = 'none';
+      adminPanel.style.display = 'block';
+      logoutBtn.style.display = 'block';
+      loadCardsFromFirestore();
+    } else {
+      userType = 'user';
+      loginSection.style.display = 'none';
+      userView.style.display = 'block';
+      logoutBtn.style.display = 'block';
+      loadCardsFromFirestore();
+    }
+  }
+
+  // Resize image to base64 (same as before)
+  function resizeAndReadImage(file, callback) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = new Image();
+      img.onload = function () {
+        const canvas = document.createElement("canvas");
+        const MAX_SIZE = 300;
+        const scale = MAX_SIZE / Math.max(img.width, img.height);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        callback(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function addCard() {
+    const name = document.getElementById('artistName').value.trim();
+    const insta = document.getElementById('instaLink').value.trim();
+    const art = document.getElementById('artLink').value.trim();
+    const profileFile = document.getElementById('profilePic').files[0];
+    const artFiles = document.getElementById('artImages').files;
+
+    if (!name || !insta || !art || !profileFile || artFiles.length < 1) {
+      return alert("Please fill all fields and add images");
+    }
+
+    resizeAndReadImage(profileFile, async (profileData) => {
+      let artDataList = [];
+      let loaded = 0;
+      for (let i = 0; i < artFiles.length && i < 10; i++) {
+        await new Promise(resolve => {
+          resizeAndReadImage(artFiles[i], (imgData) => {
+            artDataList.push(imgData);
+            loaded++;
+            resolve();
+          });
+        });
+      }
+      const createdDate = new Date().toISOString();
+      const card = { name, insta, art, profile: profileData, arts: artDataList, created: createdDate };
+
+      try {
+        await db.collection('artistCards').add(card);
+        alert('Artist card added!');
+        clearInputs();
+        loadCardsFromFirestore();
+      } catch(e) {
+        alert('Error adding card: ' + e.message);
+      }
+    });
+  }
+
+  // Clear input fields after adding card
+  function clearInputs() {
+    document.getElementById('artistName').value = '';
+    document.getElementById('instaLink').value = '';
+    document.getElementById('artLink').value = '';
+    document.getElementById('profilePic').value = '';
+    document.getElementById('artImages').value = '';
+  }
+
+  // Load cards from Firestore
+  async function loadCardsFromFirestore() {
+    try {
+      const snapshot = await db.collection('artistCards').get();
+      storedCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      if (userType === 'admin') {
+        showAllCards();
+      } else {
+        showUserView();
+      }
+    } catch(e) {
+      alert('Error loading cards: ' + e.message);
+    }
+  }
+
+  function showAllCards() {
+    const list = document.getElementById('cardList');
+    list.innerHTML = '';
+    storedCards.forEach((card, index) => {
+      const createdDate = new Date(card.created);
+      const expiryDate = new Date(createdDate); expiryDate.setMonth(createdDate.getMonth() + 3);
+      const now = new Date();
+      const expired = now > expiryDate;
+
+      list.innerHTML += `
+        <div class="card">
+          <span class="close-btn" onclick="deleteCard('${card.id}')">×</span>
+          <img src="${card.profile}" />
+          <h3>${card.name}</h3>
+          <div>${createdDate.toDateString()} - ${expiryDate.toDateString()}</div>
+          <div class="icons">
+            <a href="${card.insta}" target="_blank">Instagram</a>
+            <a href="${card.art}" target="_blank">Art Link</a>
+          </div>
+          <div class="art-images">
+            ${card.arts.map(a => `<img src="${a}" />`).join('')}
+          </div>
+          ${expired ? '<button onclick="showPayPopup()">Pay Now</button>' : ''}
+        </div>`;
+    });
+  }
+
+  async function deleteCard(id) {
+    if (confirm("Delete this artist card?")) {
+      try {
+        await db.collection('artistCards').doc(id).delete();
+        loadCardsFromFirestore();
+      } catch(e) {
+        alert('Error deleting card: ' + e.message);
+      }
+    }
+  }
+
+  function showUserView() {
+    const list = document.getElementById('userCardView');
+    list.innerHTML = '';
+    storedCards.forEach((card) => {
+      const createdDate = new Date(card.created);
+      const expiryDate = new Date(createdDate); expiryDate.setMonth(createdDate.getMonth() + 3);
+      const now = new Date();
+      const expired = now > expiryDate;
+
+      list.innerHTML += `
+        <div class="card" onclick="${expired ? 'showPayPopup()' : ''}">
+          <img src="${card.profile}" />
+          <h3>${card.name}</h3>
+          <div>${createdDate.toDateString()} - ${expiryDate.toDateString()}</div>
+          <div class="icons">
+            <a href="${card.insta}" target="_blank">Instagram</a>
+            <a href="${card.art}" target="_blank">Art Link</a>
+          </div>
+          <div class="art-images">
+            ${card.arts.map(a => `<img src="${a}" />`).join('')}
+          </div>
+        </div>`;
+    });
+  }
+
+  function showPayPopup() {
+    document.getElementById('payPopup').style.display = 'flex';
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (user) postLogin(user.email);
+    else {
+      loginSection.style.display = 'block';
+      adminPanel.style.display = 'none';
+      userView.style.display = 'none';
+      logoutBtn.style.display = 'none';
+      storedCards = [];
+    }
+  });
+</script>
 </body>
 </html>
