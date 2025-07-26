@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini eCommerce with Admin Login</title>
+  <style>
+    /* Updated styles below */
+    .product-card {
+      max-width: 400px;
+    }
+    .buy-button {
+      position: relative;
+    }
+    .buy-button::after {
+      content: "\1F6D2";
+      position: absolute;
+      right: -30px;
+      top: 3px;
+      cursor: pointer;
+    }
+    .no-return {
+      color: red;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    .popup-box {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      z-index: 10000;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    .popup-box img {
+      max-width: 100px;
+      display: block;
+      margin: auto;
+    }
+    .popup-box h4 {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .popup-close {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Your existing HTML remains unchanged above -->
+
+<div id="gpayPopup" class="popup-box">
+  <span class="popup-close" onclick="document.getElementById('gpayPopup').style.display='none'">&times;</span>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/5/5a/Google_Pay_%28GPay%29_Logo.svg" />
+  <h4>Scan & Pay with GPay</h4>
+</div>
+
+<script>
+  // Show GPay popup on buy button click
+  document.addEventListener("click", function(e) {
+    if (e.target.classList.contains("buy-button")) {
+      e.preventDefault();
+      const popup = document.getElementById("gpayPopup");
+      popup.style.display = "block";
+    }
+  });
+
+  // Add "No Return" label in form submit
+  function saveProduct(product) {
+    product.noReturn = true;
+    const products = JSON.parse(localStorage.getItem("products") || "[]");
+    products.push(product);
+    localStorage.setItem("products", JSON.stringify(products));
+    clearForm();
+    renderProducts();
+  }
+
+  function renderProducts() {
+    const products = JSON.parse(localStorage.getItem("products") || "[]");
+    const filter = searchBar.value.toLowerCase();
+    productList.innerHTML = "<h3>Available Products</h3>";
+    products.forEach((prod, index) => {
+      if (!prod.pname.toLowerCase().includes(filter)) return;
+      const card = document.createElement("div");
+      card.className = "product-card";
+      const info = document.createElement("div");
+      info.className = "product-info";
+      info.innerHTML = `
+        <h4>${prod.pname}</h4>
+        <p>Price: ₹${prod.price}</p>
+        <p>Qty: ${prod.qty || '-'}</p>
+        <p>Contact: ${prod.contact || '-'}</p>
+        <a class="buy-button" href="${prod.gpay || '#'}" target="_blank">Buy</a>
+        <p class="no-return">No Return</p>
+      `;
+      card.appendChild(info);
+      productList.appendChild(card);
+    });
+  }
+</script>
+
+</body>
+</html>
